@@ -15,7 +15,7 @@
 
 struct Acct{
 	char* name;   //need to dynamically allocate when struct is created.
-	double balance;
+	double balance = 0;//starting value will be 0
 	int session;  // 1: true     0: false
 };
 

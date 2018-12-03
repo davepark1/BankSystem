@@ -13,11 +13,11 @@
 #include <fcntl.h>
 #include <pthread.h>
 
-struct Acct{
+typedef struct Acct{//typdef would be better here PJ
 	char* name;   //need to dynamically allocate when struct is created.
-	double balance = 0;//starting value will be 0
+	double balance = 0;//starting value will be 0 PJ
 	int session;  // 1: true     0: false
-};
+}Acct;
 
 void* responseOutput(void* arg);
 

@@ -15,7 +15,7 @@
 
 typedef struct Acct{//typdef would be better here PJ
 	char* name;   //need to dynamically allocate when struct is created.
-	double balance = 0;//starting value will be 0 PJ
+	double balance;
 	int session;  // 1: true     0: false
 }Acct;
 

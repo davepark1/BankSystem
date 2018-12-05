@@ -1,7 +1,7 @@
 #include "banking.h"
 
 
-struct Acct* currentAcct = NULL; //current account logged into. if NULL, no one is logged in.
+Acct* currentAcct = NULL; //current account logged into. if NULL, no one is logged in.
 int clientSocket;
 
 //Read messages from server and send them to user
@@ -92,7 +92,7 @@ int main (int argc, char** argv){
 		//  *NOTE* : need to work out format of TCP message.
 		if (strcmp(cmd[0], "create") == 0){ 
 			printf("In create\n");
-			struct Acct* newAcct = (struct Acct*) malloc(sizeof(struct Acct));
+			Acct* newAcct = (Acct*) malloc(sizeof(Acct));
 			newAcct->name = cmd[1];
 			
 		}else if(strcmp(cmd[0], "serve") == 0){

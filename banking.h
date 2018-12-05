@@ -12,6 +12,11 @@
 #include <limits.h>
 #include <fcntl.h>
 #include <pthread.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <signal.h>
+#include <netdb.h>
+
 
 typedef struct Acct{//typdef would be better here PJ
 	char* name;   //need to dynamically allocate when struct is created.

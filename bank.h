@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <limits.h>
 #include <pthread.h>
+#include <time.h>
 
 typedef struct account{
   char* name;

@@ -5,29 +5,35 @@
 #include <string.h> 
 #include <netdb.h>
 #include "bank.h"
+#include <time.h>
 #define MAX_LIMIT 20
 char messageSent[MAX_LIMIT]; 
 int sock = 0, valread; 
-char buffer[1024] = {0}; 
+
 int PORT;
 void* inputthread()
 {
   while(1)
     {
+      // printf("begin\n");
       fgets(messageSent,MAX_LIMIT,stdin);
       send(sock , messageSent , strlen(messageSent) , 0 ); 
-      sleep(2);
     }
 }
 
 void *outputthread()
 {
+  
   while(1)
     {
+      char buffer[1024] = {0}; 
       valread = read( sock , buffer, 1024); 
       printf("%s\n",buffer ); 
       if(strcmp(buffer,"terminate")==0)
+	{
+	  printf("session has been ended\n");  
 	exit(0);
+	}
     }
 }
 

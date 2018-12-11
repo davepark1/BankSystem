@@ -15,9 +15,11 @@ int threadIndex = 0;
 
 void *clientthread();
 void sighandle(int signo);
-void create(char* accname);
+void create(char* accname,int new_socket);
 int serve(char *accname);
 void printsig();
+void deposit(int accnum, double moneyexchange);
+void withdraw(int accnum, double moneyexchange);
 
 
 void main(int argc, char *argv[])
@@ -99,26 +101,111 @@ void* clientthread(void *temp)
   int new_socket = per->newsocket;
   int valread;
   char buffer[1024] = {0};
+  char* response=NULL;
   char *firstword;
   char *rest;
-  char response[30];
+  char tempbalance[60];
+  int accnum = -1;
+  double moneyexchange;
   while(1)
     {
-    valread = read( new_socket , buffer, 1024); 
+      response= (char*)malloc(sizeof(char)*30);
+    valread = read(new_socket , buffer, 1024); 
     if(valread ==0)//if valread = 0 then client has terminated
       break;
-    strcpy(response,"Enter a valid command");
     firstword = strtok(buffer," ");
+    rest = strtok(NULL,"\n");
     if(strcmp(firstword,"create")==0)
       {
-	rest = strtok(NULL,"\n");
 	//printf("printing %s\n",rest);
-	create(rest);
-	strcpy(response,"string has been created");
+	create(rest,new_socket);
+	//strcpy(response,"string has been created");
+      }
+    else if(strcmp(firstword,"serve")==0)
+      {
+	if(accnum != -1)
+	  strcpy(response,"End session with current account first");
+	else
+	  {
+	  accnum = serve(rest);
+	  if(accnum == -1)
+	    {
+	      strcpy(response,"Account does not exist or is being used ");
+	    }
+	  else
+	    {
+	      strcpy(response,"now serving ");
+	      strcat(response,rest);
+	    }
+	  }
+      }
+    else if(strcmp(firstword,"deposit")==0)
+      {
+	sscanf(rest,"%lf",&moneyexchange);
+	if(accnum == -1)
+	  strcpy(response,"first select and account");
+	else if(moneyexchange <0)
+	  strcpy(response,"deposit must be positive");
+	else
+	  {
+	    deposit(accnum,moneyexchange);
+	    strcpy(response,"deposit successful");
+	  }
+      }
+    else if(strcmp(firstword,"withdraw")==0)
+      {
+	sscanf(rest,"%lf",&moneyexchange);
+	if(accnum == -1)
+	  strcpy(response,"first select and account");
+	else if(moneyexchange <0)
+	  strcpy(response,"withdraw must be positive");
+	else
+	  {
+	    if(accountList[accnum].balance<moneyexchange)
+	      strcpy(response,"withdraw must not be greater than balance");
+	    else
+	      {
+		 withdraw(accnum,moneyexchange);
+		 strcpy(response,"withdraw successful");
+	      }
+	  }
+      }
+    else if(strcmp(strtok(firstword,"\n"),"query")==0)
+      {
+	if(accnum == -1)
+	  strcpy(response,"first select a account");
+	else
+	  {
+	    strcpy(response,"Balance is ");
+	    sprintf(tempbalance,"%0.2lf",accountList[accnum].balance);
+	    strcat(response,tempbalance);
+	  }
+      }
+    else if(strcmp(strtok(firstword,"\n"),"end")==0)
+      {
+	accnum = -1;
+	strcpy(response,"Account session has been ended");
+      }
+    else if(strcmp(strtok(firstword,"\n"),"quit")==0)
+      {
+	accnum = -1;
+	//strcpy(response,"Session has been ended\n");
+	//send(new_socket , response , strlen(response), 0 ); 
+	send(new_socket , "terminate" , 15 , 0 );
+	break;
+      }
+    else
+      {
+	strcpy(response,firstword);
+	strcat(response,"|");
+	sprintf(tempbalance,"%d",strcmp(strtok(firstword,"\n"),"query"));
+	strcat(response,tempbalance);
+	strcat(response,"|");
       }
 
-    send(new_socket , response , strlen(response) , 0 ); 
-    printf("Hello message sent\n"); 
+    send(new_socket , response , strlen(response), 0 ); 
+    free(response);
+    //printf("Hello message sent\n"); 
     }
   
 }
@@ -158,16 +245,26 @@ void printsig()
 {
   pthread_mutex_lock(&lock);
   int count = 0;
+  printf("Name:   \t");
+  printf("Balance       \t");
+  printf("Service\n");
   while(count<totalaccounts)
     {
-      printf("Name: %s\n",accountList[count].name);
+      printf("Name: %s\t",accountList[count].name);
+      printf("Balance: %0.2lf\t",accountList[count].balance);
+
+      if(accountList[count].service == 1)//If in service say so
+	printf("IN SERVICE\n");
+      else
+	printf("\n");
       count++;
     }
+  printf("\n");
   pthread_mutex_unlock(&lock);
 }
 
 // Different commands from the user to the server
-void create(char* accname)
+void create(char* accname,int new_socket)
 {
   pthread_mutex_lock(&lock);
   int count = 0;
@@ -177,6 +274,7 @@ void create(char* accname)
 	{
 	  printf("Error:Account Exists");
 	  pthread_mutex_unlock(&lock);
+	  send(new_socket , "Error: Account Exists" , strlen("Error: Acount Exists") , 0 );
 	  return;
 	}
       count++;
@@ -189,11 +287,13 @@ void create(char* accname)
   accountList[totalaccounts]= acc;
   totalaccounts += 1;
   pthread_mutex_unlock(&lock);
+  send(new_socket , "Account created" , strlen("Account Created") , 0 );
   return;
 }
 
 int serve(char *accname)
 {
+  pthread_mutex_lock(&lock);
   int count = 0;
   account temp;
   while(count < totalaccounts)
@@ -206,9 +306,31 @@ int serve(char *accname)
       count++;
     }
   if(count == totalaccounts)
+    {
     printf("error\n");
+    return -1;
+    }
   if(accountList[count].service == 1)
+    {
     printf("already being accessed");
+    return -1;
+    }
   accountList[count].service = 1;
+  pthread_mutex_unlock(&lock);
   return count;
 }
+void deposit(int accnum, double moneyexchange)
+{
+  pthread_mutex_lock(&lock);
+  accountList[accnum].balance += moneyexchange;
+  pthread_mutex_unlock(&lock);
+  return;
+}
+void withdraw(int accnum, double moneyexchange)
+{
+  pthread_mutex_lock(&lock);
+  accountList[accnum].balance -= moneyexchange;
+  pthread_mutex_unlock(&lock);
+  return;
+}
+

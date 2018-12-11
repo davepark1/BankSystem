@@ -68,6 +68,7 @@ void* responseOutput(void* arg){
     	valread = recv( clientSocket , buffer, 1024, 0);
     	//valread = read(clientSocket, buffer, 1024);
     	if (valread == -1 || strcmp(buffer, "x") == 0 || strcmp(buffer, "") == 0){
+    		free(buffer);
 	    	continue;
     	}
     	printf("ACK received: %s\n", buffer);
@@ -435,6 +436,7 @@ void processReceipt(char** tokens){
 	}
 
 	int length = atoi(tokens[1]);
+	printf("length: %d\n", length);
 	if (length != strlen(tokens[2])){
 		printf("ERROR: Message received is corrupted. Message: %s\nMessage length should be: %s\n", tokens[2], tokens[1]);
 		return;

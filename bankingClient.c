@@ -189,7 +189,7 @@ int main (int argc, char** argv){
 		//printf("cmd[0]: %s\tcmd[1]: %s\n", cmd[0], cmd[1]);
 		
 		//  *NOTE*  TCP message format (create, serve):   "commandNumber:messageLength:message"
-		//  *NOTE*  TCP message format(deposit, withdraw): "commandNumber:messageLength:account,deposit/withdraw amount"
+		//  *NOTE*  TCP message format(deposit, withdraw): "commandNumber:messageLength:deposit/withdraw amount"
 		//  ACK:   0: error   else ==> success
 
 		processInputs(cmd);
@@ -236,7 +236,7 @@ void processInputs(char** cmd){
 
 
 		//create message
-		//TCP MESSAGE FORMAT:  "messageLength:commandNumber:message"
+		//TCP MESSAGE FORMAT:  "commandNumber:messageLength:message"
 		strcpy(message, "1:");
 
 		char len[6];			//variable to hold length of message (account)
@@ -260,7 +260,7 @@ void processInputs(char** cmd){
 		pthread_mutex_unlock(&mutex2);
 			
 		//create message
-		//TCP MESSAGE FORMAT:  "messageLength:commandNumber:message"
+		//TCP MESSAGE FORMAT:  "commandNumber:messageLength:message"
 		strcpy(message, "2:");
 
 		char len[6];			//variable to hold length of message (account)
@@ -285,18 +285,20 @@ void processInputs(char** cmd){
 		pthread_mutex_unlock(&mutex2);
 
 		//create message
-		//TCP MESSAGE FORMAT:  "messageLength:commandNumber:account,deposit/withdraw amount"
+		//TCP MESSAGE FORMAT:  "commandNumber:messageLength:deposit/withdraw amount"
 		strcpy(message, "3:");
 
 		//delimiter betweeen account and deposit/withdraw amount is a comma ','
-		strcat(tmp, ",");
-		strcat(tmp, cmd[1]);
+		//strcat(tmp, ",");
+		//strcat(tmp, cmd[1]);
 
 		char len[6];
-		sprintf(len, "%d", strlen(tmp));
+		//sprintf(len, "%d", strlen(tmp));
+		sprintf(len, "%d", strlen(cmd[1]));
 		strcat(message, len);
 		strcat(message, ":");
-		strcat(message, tmp);
+		//strcat(message, tmp);
+		strcat(message, cmd[1]);
 		ret = send(clientSocket, message, 1050, 0);     //might have to cast message to void*
 
 	}else if(strcmp(cmd[0], "withdraw") == 0 && cmd[1] != NULL){
@@ -313,17 +315,19 @@ void processInputs(char** cmd){
 		pthread_mutex_unlock(&mutex2);
 
 		//create message
-		//TCP MESSAGE FORMAT:  "messageLength:commandNumber:account,deposit/withdraw amount"
+		//TCP MESSAGE FORMAT:  "commandNumber:messageLength:deposit/withdraw amount"
 		strcat(message, "4:");
 
-		strcat(tmp, ",");
-		strcat(tmp, cmd[1]);
+		//strcat(tmp, ",");
+		//strcat(tmp, cmd[1]);
 
 		char len[6];
-		sprintf(len, "%d", strlen(tmp));
+		//sprintf(len, "%d", strlen(tmp));
+		sprintf(len, "%d", strlen(cmd[1]));
 		strcat(message, len);
 		strcat(message, ":");
-		strcat(message, tmp);
+		//strcat(message, tmp);
+		strcat(message, cmd[1]);
 		ret = send(clientSocket, message, 1050, 0);    //might have to cast message to void*	
 			
 	}else if(strcmp(cmd[0], "query") == 0){

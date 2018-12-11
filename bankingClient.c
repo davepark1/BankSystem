@@ -47,7 +47,8 @@ char* trim(char* string){
 //Read messages from server and send them to user
 void* responseOutput(void* arg){
 	//This will be a different thread constantly listening to the server
-	char* buffer = (char*) malloc(sizeof(char)*1024);
+	//char* buffer = (char*) malloc(sizeof(char)*1024);
+	char* buffer;
 	int valread;
 	char** tokens = (char**) malloc(sizeof(char*)*3);
 	
@@ -59,14 +60,14 @@ void* responseOutput(void* arg){
 		}
 		pthread_mutex_unlock(&mutex1);
 
-		buffer = NULL;
+		buffer = (char*) malloc(sizeof(char)*1024);
 		tokens[0] = NULL;
 		tokens[1] = NULL;
 		tokens[2] = NULL;
 
     	valread = recv( clientSocket , buffer, 1024, 0);
     	//valread = read(clientSocket, buffer, 1024);
-    	if (valread == -1){
+    	if (valread == -1 || strcmp(buffer, "x") == 0 || strcmp(buffer, "") == 0){
 	    	continue;
     	}
     	printf("ACK received: %s\n", buffer);
@@ -107,9 +108,8 @@ void* responseOutput(void* arg){
 			free(tokens[2]);
 		}
 		
-		if (buffer != NULL){
-			free(buffer);
-		}
+		free(buffer);
+		buffer = NULL;
     }
 	
 	 free(tokens);
@@ -135,7 +135,7 @@ int main (int argc, char** argv){
 		exit(0);
 	}
 	
-	clientSocket = socket(AF_INET, SOCK_STREAM/* | SOCK_NONBLOCK*/, 0);
+	clientSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
 	if (clientSocket < 0){
 		printf("Error in creating socket.\n");
 		exit(0);

@@ -47,7 +47,8 @@ char* trim(char* string){
 //Read messages from server and send them to user
 void* responseOutput(void* arg){
 	//This will be a different thread constantly listening to the server
-	char buffer[1024] = "";
+	char* buffer = (char*) malloc(sizeof(char)*1024);
+  
 	int valread;
 	char** tokens = (char**) malloc(sizeof(char*)*3);
 	
@@ -58,12 +59,14 @@ void* responseOutput(void* arg){
 			break;
 		}
 		pthread_mutex_unlock(&mutex1);
-
+		buffer = NULL;
+		buffer = (char*) malloc(sizeof(char)*1024);
 		tokens[0] = NULL;
 		tokens[1] = NULL;
 		tokens[2] = NULL;
-
-    	valread = recv( clientSocket , buffer, 1024, 0);
+		valread = recv(clientSocket , buffer, 1024,0);
+		printf("%s\n",buffer);
+    	//valread = read(clientSocket, buffer, 1024);
     	if (valread == -1){
 	    	continue;
     	}
@@ -104,6 +107,10 @@ void* responseOutput(void* arg){
 		if (tokens[2] != NULL){
 			free(tokens[2]);
 		}
+		
+		if (buffer != NULL){
+			free(buffer);
+			}
     }
 	
 	 free(tokens);
@@ -129,14 +136,14 @@ int main (int argc, char** argv){
 		exit(0);
 	}
 	
-	clientSocket = socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK, 0);
+	clientSocket = socket(AF_INET, SOCK_STREAM/* | SOCK_NONBLOCK*/, 0);
+	//clientSocket = socket(AF_INET, SOCK_STREAM, 0);
 	if (clientSocket < 0){
 		printf("Error in creating socket.\n");
 		exit(0);
 	}
 	
 	struct sockaddr_in addr;
-	memset(&addr,'0',sizeof(addr));
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
 	
@@ -160,7 +167,7 @@ int main (int argc, char** argv){
 	pthread_create(&thread, NULL, responseOutput, NULL);
 	
 	
-	char buffer[1024] = "";
+	char* buffer;
 	char** cmd = (char**) malloc(sizeof(char*)*2);
 	
 	while(1){
@@ -171,6 +178,7 @@ int main (int argc, char** argv){
 		pthread_mutex_unlock(&mutex1);
 
 		//char* cmd[2];
+		buffer = (char*) malloc(sizeof(char)*1024);
 		cmd[0] = NULL;
 		cmd[1] = NULL;
 		
@@ -202,6 +210,7 @@ int main (int argc, char** argv){
 			free(cmd[1]);
 		}
 		
+		free(buffer);
 		sleep(2);
 	}
 	
@@ -245,7 +254,8 @@ void processInputs(char** cmd){
 
 		strcat(message, len);
 		strcat(message, ":");
-		strcat(message, cmd[0]);
+		strcat(message, cmd[1]);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);   //might have to cast message to void*
 			
 	}else if(strcmp(cmd[0], "serve") == 0 && cmd[1] != NULL){
@@ -270,6 +280,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, cmd[1]);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);   //might have to cast message to void*
 			
 	}else if(strcmp(cmd[0], "deposit") == 0 && cmd[1] != NULL){
@@ -300,6 +311,7 @@ void processInputs(char** cmd){
 		strcat(message, ":");
 		//strcat(message, tmp);
 		strcat(message, cmd[1]);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);     //might have to cast message to void*
 
 	}else if(strcmp(cmd[0], "withdraw") == 0 && cmd[1] != NULL){
@@ -329,6 +341,7 @@ void processInputs(char** cmd){
 		strcat(message, ":");
 		//strcat(message, tmp);
 		strcat(message, cmd[1]);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);    //might have to cast message to void*	
 			
 	}else if(strcmp(cmd[0], "query") == 0){
@@ -351,6 +364,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, tmp);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);
 			
 	}else if(strcmp(cmd[0], "end") == 0){
@@ -373,6 +387,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, tmp);
+		printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);		
 			
 	}else if(strcmp(cmd[0], "quit") == 0){
@@ -396,7 +411,6 @@ void processInputs(char** cmd){
 		pthread_mutex_unlock(&mutex1);
 
 		printf("quit: message %s\n", message);
-		return;
 		ret = send(clientSocket, message, 1050, 0);
 
 	}else{
@@ -424,7 +438,7 @@ void processReceipt(char** tokens){
 
 	int length = atoi(tokens[1]);
 	if (length != strlen(tokens[2])){
-		printf("ERROR: Message received is corrupted. Message: %s\nMessage length should be: %s\nLength of message received: %s\n", tokens[2], strlen(tokens[2]), tokens[1]);
+		printf("ERROR: Message received is corrupted. Message: %s\nMessage length should be: %s\n", tokens[2], tokens[1]);
 		return;
 	}
 
@@ -473,5 +487,6 @@ void processReceipt(char** tokens){
 	}else{
 		printf("Received invalid message: %s:%s:%s\n", tokens[0], tokens[1], tokens[2]);
 	}
+
 	return;
 }

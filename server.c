@@ -92,7 +92,6 @@ void main(int argc, char *argv[])
 // Place for the client thread to go will add in more so it make send in commands
 void* clientthread(void *temp)
 {
-  printf("thread suc\n");
   userinfo *per = (userinfo*)temp;
   int new_socket = per->newsocket;
   int valread;
@@ -100,107 +99,116 @@ void* clientthread(void *temp)
   char* response=NULL;
   int commandNum;
   char *rest;
-  char tempbalance[60];
   int accnum = -1;
   int length;
   double moneyexchange;
   while(1)
     {
-      response= (char*)malloc(sizeof(char)*30);
-    valread = read(new_socket , buffer, 1024); 
-    if(valread ==0)//if valread = 0 then client has terminated
-      break;
-    sscanf(strtok(buffer,":"),"%d",&commandNum);
-    sscanf(strtok(buffer,":"),"%d",&length);
-    rest = strtok(NULL,"");
-    
-    if(commandNum == 1)//create
-      {
-	//printf("printing %s\n",rest);
-	create(rest,new_socket);
-	//strcpy(response,"string has been created");
-      }
-    else if(commandNum == 2)//serve
-      {
-	if(accnum != -1)
-	  strcpy(response,"End session with current Acct first");
-	else
-	  {
-	  accnum = serve(rest);
-	  if(accnum == -1)
+      char response[1024];
+      char tempbalance[1024];
+      valread = read(new_socket , buffer, 1024); 
+      if(valread ==0)//if valread = 0 then client has terminated
+	break;
+      printf("buffer is:%s\n",buffer);
+      sscanf(strtok(buffer,":"),"%d",&commandNum);
+      sscanf(strtok(NULL,":"),"%d",&length);
+      rest = strtok(NULL,"");
+      printf("command %d length %d message %s\n",commandNum,length,rest);
+      if(commandNum == 1)//create
+	{
+	  //printf("printing %s\n",rest);
+	  create(rest,new_socket);
+	  //strcpy(response,"string has been created");
+	}
+      else if(commandNum == 2)//serve
+	{
+	  if(accnum != -1)
 	    {
-	      strcpy(response,"Acct does not exist or is being used ");
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("End session with current Acct first"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"End session with current Acct first");
 	    }
+	 
+	
 	  else
 	    {
-	      strcpy(response,"now serving ");
-	      strcat(response,rest);
+	      accnum = serve(rest);
+	      if(accnum == -1)
+		{
+		  strcpy(response,"Acct does not exist or is being used");
+		  send(new_socket , "0:" , strlen(response), 0 );
+		}
+	      else
+		{
+		  strcpy(response,"now serving ");
+		  strcat(response,rest);
+		}
 	    }
-	  }
-      }
-    else if(commandNum == 3)//deposit
-      {
-	sscanf(rest,"%lf",&moneyexchange);
-	if(accnum == -1)
-	  strcpy(response,"first select and Acct");
-	else if(moneyexchange <0)
-	  strcpy(response,"deposit must be positive");
-	else
-	  {
-	    deposit(accnum,moneyexchange);
-	    strcpy(response,"deposit successful");
-	  }
-      }
-    else if(commandNum == 4)//withdraw
-      {
-	sscanf(rest,"%lf",&moneyexchange);
-	if(accnum == -1)
-	  strcpy(response,"first select and Acct");
-	else if(moneyexchange <0)
-	  strcpy(response,"withdraw must be positive");
-	else
-	  {
-	    if(AcctList[accnum].balance<moneyexchange)
-	      strcpy(response,"withdraw must not be greater than balance");
-	    else
-	      {
-		 withdraw(accnum,moneyexchange);
-		 strcpy(response,"withdraw successful");
-	      }
-	  }
-      }
-    else if(commandNum == 5)//query
-      {
-	if(accnum == -1)
-	  strcpy(response,"first select a Acct");
-	else
-	  {
-	    strcpy(response,"Balance is ");
-	    sprintf(tempbalance,"%0.2lf",AcctList[accnum].balance);
-	    strcat(response,tempbalance);
-	  }
-      }
-    else if(commandNum == 6)//end
-      {
-	accnum = -1;
-	strcpy(response,"Acct session has been ended");
-      }
-    else if(commandNum == 7)//quit
-      {
-	accnum = -1;
-	//strcpy(response,"Session has been ended\n");
-	//send(new_socket , response , strlen(response), 0 ); 
-	send(new_socket , "terminate" , 15 , 0 );
-	break;
-      }
-    else
-      {
-	strcpy(response,"Error enter a valid command");
-      }
+	}
+      else if(commandNum == 3)//deposit
+	{
+	  sscanf(rest,"%lf",&moneyexchange);
+	  if(accnum == -1)
+	    strcpy(response,"first select and Acct");
+	  else if(moneyexchange <0)
+	    strcpy(response,"deposit must be positive");
+	  else
+	    {
+	      deposit(accnum,moneyexchange);
+	      strcpy(response,"deposit successful");
+	    }
+	}
+      else if(commandNum == 4)//withdraw
+	{
+	  sscanf(rest,"%lf",&moneyexchange);
+	  if(accnum == -1)
+	    strcpy(response,"first select and Acct");
+	  else if(moneyexchange <0)
+	    strcpy(response,"withdraw must be positive");
+	  else
+	    {
+	      if(AcctList[accnum].balance<moneyexchange)
+		strcpy(response,"withdraw must not be greater than balance");
+	      else
+		{
+		  withdraw(accnum,moneyexchange);
+		  strcpy(response,"withdraw successful");
+		}
+	    }
+	}
+      else if(commandNum == 5)//query
+	{
+	  if(accnum == -1)
+	    strcpy(response,"first select a Acct");
+	  else
+	    {
+	      strcpy(response,"Balance is ");
+	      sprintf(tempbalance,"%0.2lf",AcctList[accnum].balance);
+	      strcat(response,tempbalance);
+	    }
+	}
+      else if(commandNum == 6)//end
+	{
+	  accnum = -1;
+	  strcpy(response,"Acct session has been ended");
+	}
+      else if(commandNum == 7)//quit
+	{
+	  accnum = -1;
+	  //strcpy(response,"Session has been ended\n");
+	  //send(new_socket , response , strlen(response), 0 ); 
+	  send(new_socket , "terminate" , 15 , 0 );
+	  break;
+	}
+      else
+	{
+	  strcpy(response,"Error enter a valid command");
+	}
 
-    send(new_socket , response , strlen(response), 0 ); 
-    free(response);
-    //printf("Hello message sent\n"); 
+      //send(new_socket , response , strlen(response), 0 ); 
+      //printf("Hello message sent\n"); 
     }
   
 }
@@ -279,6 +287,7 @@ void create(char* accname,int new_socket)
       count++;
     }
   Acct acc;
+  printf("test\n");
   acc.name = (char*)malloc(sizeof(accname));
   strcpy(acc.name,accname);
   acc.balance = 0;

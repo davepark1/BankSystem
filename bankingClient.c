@@ -71,16 +71,23 @@ void* responseOutput(void* arg){
     		free(buffer);
 	    	continue;
     	}
-    	printf("ACK received: %s\n", buffer);
+    	printf("ACK received.\n");
 
 
     	if(strcmp(buffer, "terminate") == 0){
     		printf("Server session terminated.\n");
-
+			free(buffer);
     		pthread_mutex_lock(&mutex1);
+    		pthread_mutex_lock(&mutex2);
     		status = 0;
+    		if (currentAcct != NULL){
+	    		free(currentAcct);
+    		}
+    		pthread_mutex_unlock(&mutex2);
     		pthread_mutex_unlock(&mutex1);
-			pthread_exit(NULL);
+		//	pthread_exit(NULL);
+			close(clientSocket);
+			exit(0);
 		}
 
 		char* token;
@@ -94,9 +101,9 @@ void* responseOutput(void* arg){
 		}
 
 		//Process the message.
-		printf("Processing ACK...\n");
+		//printf("Processing ACK...\n");
 		processReceipt(tokens);
-		printf("Processing Complete\n");
+		//printf("Processing Complete\n");
 
 
 		if (tokens[0] != NULL){
@@ -254,7 +261,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, cmd[1]);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);   //might have to cast message to void*
 			
 	}else if(strcmp(cmd[0], "serve") == 0 && cmd[1] != NULL){
@@ -263,7 +270,7 @@ void processInputs(char** cmd){
 		//Check if user already logged in.
 		pthread_mutex_lock(&mutex2);
 		if (currentAcct != NULL){
-			printf("User %s already logged in. Must be logged out to create\n", currentAcct);
+			printf("User %s already logged in. Must be logged out to serve\n", currentAcct);
 			pthread_mutex_unlock(&mutex2);
 			return;
 		}
@@ -279,7 +286,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, cmd[1]);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);   //might have to cast message to void*
 			
 	}else if(strcmp(cmd[0], "deposit") == 0 && cmd[1] != NULL){
@@ -310,7 +317,7 @@ void processInputs(char** cmd){
 		strcat(message, ":");
 		//strcat(message, tmp);
 		strcat(message, cmd[1]);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);     //might have to cast message to void*
 
 	}else if(strcmp(cmd[0], "withdraw") == 0 && cmd[1] != NULL){
@@ -340,7 +347,7 @@ void processInputs(char** cmd){
 		strcat(message, ":");
 		//strcat(message, tmp);
 		strcat(message, cmd[1]);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);    //might have to cast message to void*	
 			
 	}else if(strcmp(cmd[0], "query") == 0){
@@ -363,7 +370,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, tmp);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);
 			
 	}else if(strcmp(cmd[0], "end") == 0){
@@ -386,7 +393,7 @@ void processInputs(char** cmd){
 		strcat(message, len);
 		strcat(message, ":");
 		strcat(message, tmp);
-		printf("Message to be sent: %s\n", message);
+		//printf("Message to be sent: %s\n", message);
 		ret = send(clientSocket, message, 1050, 0);		
 			
 	}else if(strcmp(cmd[0], "quit") == 0){
@@ -399,18 +406,18 @@ void processInputs(char** cmd){
 		status = 0;
 		if (currentAcct != NULL){
 			strcat(message, currentAcct);
-			free(currentAcct);
 		}else{
 			strcat(message, "quit");
 			pthread_mutex_unlock(&mutex2);
 			pthread_mutex_unlock(&mutex1);
-			return;
 		}
 		pthread_mutex_unlock(&mutex2);
 		pthread_mutex_unlock(&mutex1);
 
-		printf("quit: message %s\n", message);
+		printf("Message sent successfully.\nWaiting for ACK...\n");
 		ret = send(clientSocket, message, 1050, 0);
+		printf("ACK received.\nQuit client session successfully.\n");
+		return;
 
 	}else{
 		printf("Invalid command. Try again\n");
@@ -436,7 +443,7 @@ void processReceipt(char** tokens){
 	}
 
 	int length = atoi(tokens[1]);
-	printf("length: %d\n", length);
+	//printf("length: %d\n", length);
 	if (length != strlen(tokens[2])){
 		printf("ERROR: Message received is corrupted. Message: %s\nMessage length should be: %s\n", tokens[2], tokens[1]);
 		return;
@@ -476,7 +483,7 @@ void processReceipt(char** tokens){
 
 	}else if (strcmp(tokens[0], "6") == 0){			//ACK for "end"
 		pthread_mutex_lock(&mutex2);
-		printf("Logging out %s", currentAcct);
+		printf("Logging out %s\n", currentAcct);
 		free(currentAcct);
 		currentAcct = NULL;
 		pthread_mutex_unlock(&mutex2);

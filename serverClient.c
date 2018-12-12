@@ -7,14 +7,6 @@ pthread_t *threads;//all threads
 pthread_mutex_t lock;//locks
 int threadIndex = 0;
 
-void *clientthread();
-void sighandle(int signo);
-void create(char* accname,int new_socket);
-int serve(char *accname);
-void printsig();
-void deposit(int accnum, double moneyexchange);
-void withdraw(int accnum, double moneyexchange);
-void setunused(int accnum);
 
 void main(int argc, char *argv[])
 {
@@ -78,9 +70,7 @@ void main(int argc, char *argv[])
 	    userinfo tempinfo;
 	    tempinfo.newsocket = new_socket;
 	    userarray[threadIndex]=tempinfo;
-	    printf("about to thread\n");
 	    int x = pthread_create(&threads[threadIndex],NULL,clientthread,&userarray[threadIndex]);
-	    printf("num is %d\n",x);
 	    threadIndex +=1;
 	    
 	  }
@@ -109,19 +99,29 @@ void* clientthread(void *temp)
       valread = recv(new_socket , buffer, 1024, 0); 
       if(valread ==0)//if valread = 0 then client has terminated
 	break;
-      printf("buffer is:%s\n",buffer);
+      //printf("buffer is:%s\n",buffer);
       if (strcmp(buffer, "") == 0 || strcmp(buffer, "x") == 0){
 	      continue;
       }
       sscanf(strtok(buffer,":"),"%d",&commandNum);
       sscanf(strtok(NULL,":"),"%d",&length);
       rest = strtok(NULL,"");
-      printf("command %d length %d message %s\n",commandNum,length,rest);
+      //printf("command %d length %d message %s\n",commandNum,length,rest);
       if(commandNum == 1)//create
 	{
-	  //printf("printing %s\n",rest);
-	  create(rest,new_socket);
-	  //strcpy(response,"string has been created");
+	  if(accnum != -1)
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("End session with current Acct first"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"End session with current Acct first");
+	      send(new_socket , response , 1024, 0 );
+	    }
+	  else
+	    {
+	      create(rest,new_socket);
+	    }
 	}
       else if(commandNum == 2)//serve
 	{
@@ -132,6 +132,7 @@ void* clientthread(void *temp)
 	      strcat(response,tempbalance);
 	      strcat(response,":");
 	      strcat(response,"End session with current Acct first");
+	      send(new_socket , response , 1024, 0 );
 	    }
 	 
 	
@@ -140,7 +141,7 @@ void* clientthread(void *temp)
 	      accnum = serve(rest);
 	      if(accnum == -1)
 		{
-			strcpy(response, "0:36:");
+		  strcpy(response, "0:36:");
 		  strcat(response,"Acct does not exist or is being used");
 		  send(new_socket , response , 1024, 0 );
 		}
@@ -164,55 +165,122 @@ void* clientthread(void *temp)
 	{
 	  sscanf(rest,"%lf",&moneyexchange);
 	  if(accnum == -1)
-	    strcpy(response,"first select and Acct");
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("First select an Acct"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"First select an Acct");
+	      send(new_socket , response , 1024, 0 );
+	    }
 	  else if(moneyexchange <0)
-	    strcpy(response,"deposit must be positive");
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("Deposit must be positive"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"Deposit must be positive");
+	      send(new_socket , response , 1024, 0 );
+	    }
 	  else
 	    {
 	      deposit(accnum,moneyexchange);
-	      strcpy(response,"deposit successful");
+	      strcpy(response, "3:");
+	      sprintf(tempbalance, "%d", strlen(rest));
+	      strcat(response, tempbalance);
+	      strcat(response, ":");
+	      strcat(response, rest);
+	      send(new_socket , response , 1024, 0 );
 	    }
 	}
       else if(commandNum == 4)//withdraw
 	{
 	  sscanf(rest,"%lf",&moneyexchange);
 	  if(accnum == -1)
-	    strcpy(response,"first select and Acct");
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("First select an Acct"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"First select an Acct");
+	      send(new_socket , response , 1024, 0 );
+	    }
 	  else if(moneyexchange <0)
-	    strcpy(response,"withdraw must be positive");
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("Deposit must be positive"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"Deposit must be positive");
+	      send(new_socket , response , 1024, 0 );
+	    }
 	  else
 	    {
 	      if(AcctList[accnum].balance<moneyexchange)
-		strcpy(response,"withdraw must not be greater than balance");
+		{
+		  strcpy(response,"0:");
+		  sprintf(tempbalance,"%d",strlen("Withdraw must not be greater than balance"));
+		  strcat(response,tempbalance);
+		  strcat(response,":");
+		  strcat(response,"Withdraw must not be greater than balance");
+		  send(new_socket , response , 1024, 0 );
+		}
 	      else
 		{
 		  withdraw(accnum,moneyexchange);
-		  strcpy(response,"withdraw successful");
+		  strcpy(response, "4:");
+		  sprintf(tempbalance, "%d", strlen(rest));
+		  strcat(response, tempbalance);
+		  strcat(response, ":");
+		  strcat(response, rest);
+		  send(new_socket , response , 1024, 0 );
 		}
 	    }
 	}
       else if(commandNum == 5)//query
 	{
 	  if(accnum == -1)
-	    strcpy(response,"first select a Acct");
+	    {
+	      strcpy(response,"0:");
+	      sprintf(tempbalance,"%d",strlen("First select an Acct"));
+	      strcat(response,tempbalance);
+	      strcat(response,":");
+	      strcat(response,"First select an Acct");
+	      send(new_socket , response , 1024, 0 );
+	    }
 	  else
 	    {
-	      strcpy(response,"Balance is ");
+	      strcpy(response, "5:");
+	      char len[6];
 	      sprintf(tempbalance,"%0.2lf",AcctList[accnum].balance);
-	      strcat(response,tempbalance);
+	      sprintf(len, "%d", strlen(tempbalance));
+	      strcat(response, len);
+	      strcat(response, ":");
+	      strcat(response, tempbalance);
+			
+	      int ret = send(new_socket, response, 1024, 0);
+	      if (ret == -1){
+		printf("failed to send\n");}
 	    }
 	}
       else if(commandNum == 6)//end
 	{
+	  setunused(accnum);
 	  accnum = -1;
-	  strcpy(response,"Acct session has been ended");
+	  strcpy(response, "6:");
+	  sprintf(tempbalance, "%d", strlen(rest));
+	  strcat(response, tempbalance);
+	  strcat(response, ":");
+	  strcat(response, rest);
+	  send(new_socket , response , 1024, 0 );
 	}
       else if(commandNum == 7)//quit
 	{
+	  setunused(accnum);
 	  accnum = -1;
 	  //strcpy(response,"Session has been ended\n");
 	  //send(new_socket , response , strlen(response), 0 ); 
-	  send(new_socket , "terminate" , 15 , 0 );
+	  send(new_socket , "7:4:quit" , 15 , 0 );
 	  break;
 	}
       else
@@ -231,7 +299,6 @@ void sighandle(int signo)
    if(signo == SIGINT)
 	{
 	  int count = 0;
-	   printf("test1\n");
 	  while(count<threadIndex)
 	    {
 	      userinfo temp = userarray[count];
@@ -239,16 +306,12 @@ void sighandle(int signo)
 	      send(new_socket , "terminate" , 15 , 0 );
 	      count++;
 	    }
-	  printf("test\n");
 	  count = 0;
 	   while(count<threadIndex)
 	    {
-	      printf("test4\n");
 	      pthread_join(threads[count],NULL);
 	      count++;
-	       printf("test3\n");
 	    }
-	    printf("test2\n");
 	   exit(0);
 	}
    else if(signo == SIGALRM)
@@ -294,7 +357,7 @@ void create(char* accname,int new_socket)
 	{
 	  printf("Error:Acct Exists");
 	  char response[100];
-	  strcpy(response, "0:22:Account already exists.");
+	  strcpy(response, "0:23:Account already exists.");
 	  pthread_mutex_unlock(&lock);
 	  send(new_socket , response, 100 , 0 );
 	  return;
@@ -302,7 +365,6 @@ void create(char* accname,int new_socket)
       count++;
     }
   Acct acc;
-  printf("test\n");
   acc.name = (char*)malloc(sizeof(accname));
   strcpy(acc.name,accname);
   acc.balance = 0;
@@ -338,11 +400,13 @@ int serve(char *accname)
   if(count == totalAccts)
     {
     printf("error\n");
+    pthread_mutex_unlock(&lock);
     return -1;
     }
   if(AcctList[count].service == 1)
     {
     printf("already being accessed");
+    pthread_mutex_unlock(&lock);
     return -1;
     }
   AcctList[count].service = 1;

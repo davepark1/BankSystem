@@ -42,5 +42,21 @@ void processInputs(char** cmd);
 
 void processReceipt(char** tokens);
 
+void *clientthread();
+
+void sighandle(int signo);
+
+void create(char* accname,int new_socket);
+
+int serve(char *accname);
+
+void printsig();
+
+void deposit(int accnum, double moneyexchange);
+
+void withdraw(int accnum, double moneyexchange);
+
+void setunused(int accnum);
+
 
 #endif

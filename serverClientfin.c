@@ -6,14 +6,7 @@ int totalAccts = 0;
 pthread_t *threads;//all threads
 pthread_mutex_t lock;//locks
 int threadIndex = 0;
-void *clientthread();
-void sighandle(int signo);
-void create(char* accname,int new_socket);
-int serve(char *accname);
-void printsig();
-void deposit(int accnum, double moneyexchange);
-void withdraw(int accnum, double moneyexchange);
-void setunused(int accnum);
+
 
 void main(int argc, char *argv[])
 {
@@ -287,7 +280,7 @@ void* clientthread(void *temp)
 	  accnum = -1;
 	  //strcpy(response,"Session has been ended\n");
 	  //send(new_socket , response , strlen(response), 0 ); 
-	  send(new_socket , "terminate" , 15 , 0 );
+	  send(new_socket , "7:4:quit" , 15 , 0 );
 	  break;
 	}
       else
@@ -364,7 +357,7 @@ void create(char* accname,int new_socket)
 	{
 	  printf("Error:Acct Exists");
 	  char response[100];
-	  strcpy(response, "0:22:Account already exists.");
+	  strcpy(response, "0:23:Account already exists.");
 	  pthread_mutex_unlock(&lock);
 	  send(new_socket , response, 100 , 0 );
 	  return;
@@ -407,11 +400,13 @@ int serve(char *accname)
   if(count == totalAccts)
     {
     printf("error\n");
+    pthread_mutex_unlock(&lock);
     return -1;
     }
   if(AcctList[count].service == 1)
     {
     printf("already being accessed");
+    pthread_mutex_unlock(&lock);
     return -1;
     }
   AcctList[count].service = 1;

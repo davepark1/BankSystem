@@ -1,5 +1,7 @@
 #include "banking.h"
-
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
 
 char* currentAcct = NULL; //current account logged into. if NULL, no one is logged in.
 int clientSocket;
@@ -134,6 +136,15 @@ int main (int argc, char** argv){
 	}
 	
 	char* machine = argv[1];
+	char ip[100];
+	struct hostent *he;
+	int i;
+	if((he=gethostbyname(argv[1]))==NULL)
+	  {
+	    herror("getname");
+	  }
+
+	strcpy(ip,inet_ntoa(*(struct in_addr *)he->h_addr));
 	int port = atoi(argv[2]);
 
 	struct hostent* host = gethostbyname(machine);
@@ -152,10 +163,10 @@ int main (int argc, char** argv){
 	struct sockaddr_in addr;
 	addr.sin_family = AF_INET;
 	addr.sin_port = htons(port);
-	
+
 	memcpy(&addr.sin_addr, host->h_addr, host->h_length);
-	
-	if (inet_pton(AF_INET, "127.0.0.1", &addr.sin_addr) <= 0){
+
+	if (inet_pton(AF_INET, ip, &addr.sin_addr) <= 0){
 		printf("Invalid address/Address not supported\n");
 		exit(0);	
 	}
@@ -436,7 +447,7 @@ void processInputs(char** cmd){
 
 //Used to process the message received from the server
 void processReceipt(char** tokens){
-
+  
 	if (tokens[0] == NULL || tokens[1] == NULL || tokens[2] == NULL){
 		printf("Incorrect message format\n");
 		return;

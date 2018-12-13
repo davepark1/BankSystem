@@ -131,7 +131,7 @@ void* responseOutput(void* arg){
 int main (int argc, char** argv){
 	
 	if (argc != 3){
-		printf("Incorrect input format. Correct format: ./bankingClient [machine name] [port number]\n");
+		printf("Incorrect input format. Correct format: ./client [machine name] [port number]\n");
 		exit(0);
 	}
 	

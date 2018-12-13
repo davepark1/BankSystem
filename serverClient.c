@@ -11,7 +11,7 @@ int threadIndex = 0;
 void main(int argc, char *argv[])
 {
 	if (argc != 2){
-		printf("Incorrect input format. Correct format: ./serverClient [port number]\n");
+		printf("Incorrect input format. Correct format: ./server [port number]\n");
 		exit(0);
 	}
 	
